@@ -37,10 +37,10 @@ def update_common_args(args: Namespace) -> Namespace:
     args.device = 'cuda' if gpu_available() else 'cpu'
     # Enable cuDNN auto-tuner if it is MNIST set
     cudnn.benchmark = True if args.data == 'MNIST' else False
-    # # The reproducibility
-    # args.reproducibility = True
-    # # Use deterministic algorithms for convolutional operations
-    # set_deterministic(args.reproducibility)
+    # The reproducibility
+    args.reproducibility = True
+    # Use deterministic algorithms for convolutional operations
+    set_deterministic(args.reproducibility)
     # Set seed in torch, numpy and built-in random modules
     torch_manual_seed(args.seed)
     npseed(args.seed)
