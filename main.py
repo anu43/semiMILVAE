@@ -346,7 +346,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data",
         type=str,
-        default="Colon",
+        default="MNIST",
         help="Choose b/w MNIST or Colon Cancer dataset",
     )
     # Parse the arguments
@@ -398,7 +398,7 @@ if __name__ == "__main__":
     # Create the model, and the optimizer
     model, optimizer = create_model_optimizer(args=args)
     # Print the model summary
-    # print(model.modelsummary())
+    print(model.modelsummary())
 
     # If the mode is base
     if args.model == "base":
