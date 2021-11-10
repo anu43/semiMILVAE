@@ -1,13 +1,13 @@
 # Import modules
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from torchsummary import summary
+import torch.nn.functional as F
+import torch.nn as nn
+import torch
 
 
-def calc_output_size_from_Conv2d(
-    height: int, width: int, kernels: tuple, strides: tuple, paddings: tuple
-) -> tuple:
+def calc_output_size_from_Conv2d(height: int, width: int,
+                                 kernels: tuple, strides: tuple,
+                                 paddings: tuple) -> tuple:
     # Upsample
     height, width = height * 10, width * 10
     # Loop over the kernel size
@@ -40,14 +40,12 @@ class Attention_MNIST(nn.Module):
         self.L = 500
         self.D = 128
         self.K = 1
-        self.z_dim = args.dec_inp * 2 if args.model == "auxil" else args.dec_inp
+        self.z_dim = args.dec_inp * 2 if args.model == 'auxil' else args.dec_inp
         # The output size from the feature_extractor_part1
-        self.fep2_height, self.fep2_width = calc_output_size_from_Conv2d(
-            *args.latent_img_size,
-            kernels=(3, 2, 3, 2),
-            strides=(1, 2, 1, 2),
-            paddings=(2, 1, 2, 1)
-        )
+        self.fep2_height, self.fep2_width = calc_output_size_from_Conv2d(*args.latent_img_size,
+                                                                         kernels=(3, 2, 3, 2),
+                                                                         strides=(1, 2, 1, 2),
+                                                                         paddings=(2, 1, 2, 1))
 
         self.feature_extractor_part1 = nn.Sequential(
             nn.Conv2d(self.z_dim, 20, kernel_size=3, padding=2),
@@ -56,7 +54,7 @@ class Attention_MNIST(nn.Module):
             nn.Conv2d(20, 50, kernel_size=3, padding=2),
             nn.ReLU(),
             nn.MaxPool2d(2, stride=2, padding=1),
-            nn.Flatten(),
+            nn.Flatten()
         )
 
         self.feature_extractor_part2 = nn.Sequential(
@@ -65,10 +63,15 @@ class Attention_MNIST(nn.Module):
         )
 
         self.attention = nn.Sequential(
-            nn.Linear(self.L, self.D), nn.Tanh(), nn.Linear(self.D, self.K)
+            nn.Linear(self.L, self.D),
+            nn.Tanh(),
+            nn.Linear(self.D, self.K)
         )
 
-        self.classifier = nn.Sequential(nn.Linear(self.L * self.K, 1), nn.Sigmoid())
+        self.classifier = nn.Sequential(
+            nn.Linear(self.L * self.K, 1),
+            nn.Sigmoid()
+        )
 
     def forward(self, x):
         # [#InstanceInBag, C, W, H] -> [#InstanceInBag, 50, 4, 4]
@@ -93,10 +96,8 @@ class Attention_MNIST(nn.Module):
     @staticmethod
     def _compute_att_loss(y, y_prob):
         y = y.float()
-        y_prob = torch.clamp(y_prob, min=1e-5, max=1.0 - 1e-5)
-        return (
-            -1.0 * (y * torch.log(y_prob) + (1.0 - y) * torch.log(1.0 - y_prob))
-        ).squeeze(0)
+        y_prob = torch.clamp(y_prob, min=1e-5, max=1. - 1e-5)
+        return (-1. * (y * torch.log(y_prob) + (1. - y) * torch.log(1. - y_prob))).squeeze(0)
 
     @staticmethod
     def _compute_cls_error(y, y_hat):
@@ -127,14 +128,12 @@ class Attention_Colon(nn.Module):
         self.D = 128
         self.K = 1
         self.recon_dims = (args.dec_inp, *args.latent_img_size)
-        self.z_dim = args.dec_inp * 2 if args.model == "auxil" else args.dec_inp
+        self.z_dim = args.dec_inp * 2 if args.model == 'auxil' else args.dec_inp
         # The output size from the feature_extractor_part1
-        self.fep2_height, self.fep2_width = calc_output_size_from_Conv2d(
-            *args.latent_img_size,
-            kernels=(4, 2, 3, 2),
-            strides=(1, 2, 1, 2),
-            paddings=(0, 0, 0, 0)
-        )
+        self.fep2_height, self.fep2_width = calc_output_size_from_Conv2d(*args.latent_img_size,
+                                                                         kernels=(4, 2, 3, 2),
+                                                                         strides=(1, 2, 1, 2),
+                                                                         paddings=(0, 0, 0, 0))
 
         self.feature_extractor_part1 = nn.Sequential(
             nn.Upsample(scale_factor=10),
@@ -144,7 +143,7 @@ class Attention_Colon(nn.Module):
             nn.Conv2d(36, 48, 3, 1, 0),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
-            nn.Flatten(),
+            nn.Flatten()
         )
 
         self.feature_extractor_part2 = nn.Sequential(
@@ -158,13 +157,18 @@ class Attention_Colon(nn.Module):
         )
 
         self.attention = nn.Sequential(
-            nn.Linear(self.L, self.D), nn.Tanh(), nn.Linear(self.D, self.K)
+            nn.Linear(self.L, self.D),
+            nn.Tanh(),
+            nn.Linear(self.D, self.K)
         )
 
-        self.classifier = nn.Sequential(nn.Linear(self.L * self.K, 1), nn.Sigmoid())
+        self.classifier = nn.Sequential(
+            nn.Linear(self.L * self.K, 1),
+            nn.Sigmoid()
+        )
 
     def forward(self, x):
-        # [#InstanceInBag, args.dec_inp, *args.latent_img_size] -> [#InstanceInBag, ?]
+        # [#InstanceInBag, C, W, H] -> [#InstanceInBag, 50, 4, 4]
         H = self.feature_extractor_part1(x)
         # [#InstanceInBag, 800] -> [#InstanceInBag, 500]
         H = self.feature_extractor_part2(H)  # NxL
@@ -191,71 +195,8 @@ class Attention_Colon(nn.Module):
     @staticmethod
     def _compute_att_loss(y, y_prob):
         y = y.float()
-        y_prob = torch.clamp(y_prob, min=1e-5, max=1.0 - 1e-5)
-        return (
-            -1.0 * (y * torch.log(y_prob) + (1.0 - y) * torch.log(1.0 - y_prob))
-        ).squeeze(0)
-
-    @staticmethod
-    def _compute_cls_error(y, y_hat):
-        y = y.float()
-        error = y_hat.eq(y).cpu().float().mean().item()
-
-        return error
-
-
-class AttentionRes_Colon(nn.Module):
-    def __init__(self):
-        super(AttentionRes_Colon, self).__init__()
-        self.L = 512
-        self.D = 128
-        self.K = 1
-
-        self.feature_extractor_part1 = nn.Sequential(
-            nn.ConvTranspose2d(2, 16, kernel_size=3),
-            nn.ReLU(),
-            nn.Upsample(scale_factor=2),
-            nn.ConvTranspose2d(16, 3, kernel_size=3),
-            nn.ReLU(),
-            nn.Upsample(scale_factor=2),
-        )
-
-        self.feature_extractor_part2 = nn.Sequential(
-            nn.Linear(1 * 28 * 28, self.L),
-            nn.ReLU(),
-        )
-
-        self.attention = nn.Sequential(
-            nn.Linear(self.L, self.D), nn.Tanh(), nn.Linear(self.D, self.K)
-        )
-
-        self.classifier = nn.Sequential(nn.Linear(self.L * self.K, 1), nn.Sigmoid())
-
-    def forward(self, x):
-        # x = x.squeeze(0)
-        x = x.view(-1, 2, 4, 4)
-        H = self.feature_extractor_part1(x)
-        H = H.view(-1, 1 * 28 * 28)
-        H = self.feature_extractor_part2(H)  # NxL
-
-        A = self.attention(H)  # NxK
-        A = torch.transpose(A, 1, 0)  # KxN
-        A = F.softmax(A, dim=1)  # softmax over N
-
-        M = torch.mm(A, H)  # KxL
-
-        Y_prob = self.classifier(M)
-        Y_hat = torch.ge(Y_prob, 0.5).float()
-
-        return Y_prob, Y_hat, A
-
-    @staticmethod
-    def _compute_att_loss(y, y_prob):
-        y = y.float()
-        y_prob = torch.clamp(y_prob, min=1e-5, max=1.0 - 1e-5)
-        return (
-            -1.0 * (y * torch.log(y_prob) + (1.0 - y) * torch.log(1.0 - y_prob))
-        ).squeeze(0)
+        y_prob = torch.clamp(y_prob, min=1e-5, max=1. - 1e-5)
+        return (-1. * (y * torch.log(y_prob) + (1. - y) * torch.log(1. - y_prob))).squeeze(0)
 
     @staticmethod
     def _compute_cls_error(y, y_hat):
@@ -293,7 +234,7 @@ class AttentionBase_MNIST(nn.Module):
             nn.MaxPool2d(2, stride=2),
             nn.Conv2d(20, 50, kernel_size=5),
             nn.ReLU(),
-            nn.MaxPool2d(2, stride=2),
+            nn.MaxPool2d(2, stride=2)
         )
 
         self.feature_extractor_part2 = nn.Sequential(
@@ -302,13 +243,18 @@ class AttentionBase_MNIST(nn.Module):
         )
 
         self.attention = nn.Sequential(
-            nn.Linear(self.L, self.D), nn.Tanh(), nn.Linear(self.D, self.K)
+            nn.Linear(self.L, self.D),
+            nn.Tanh(),
+            nn.Linear(self.D, self.K)
         )
 
-        self.classifier = nn.Sequential(nn.Linear(self.L * self.K, 1), nn.Sigmoid())
+        self.classifier = nn.Sequential(
+            nn.Linear(self.L * self.K, 1),
+            nn.Sigmoid()
+        )
 
         # Trace
-        print("Constructed the Attention Base model based on the MNIST dataset.")
+        print('Constructed the Attention Base model based on the MNIST dataset.')
 
     def forward(self, x):
         # [B, #InstanceInBag, C, W, H] -> [#InstanceInBag, C, W, H]
@@ -347,10 +293,9 @@ class AttentionBase_MNIST(nn.Module):
     def calculate_objective(self, x, y):
         y = y.float()
         y_prob, _, A = self.forward(x)
-        y_prob = torch.clamp(y_prob, min=1e-5, max=1.0 - 1e-5)
-        neg_log_likelihood = -1.0 * (
-            y * torch.log(y_prob) + (1.0 - y) * torch.log(1.0 - y_prob)
-        )  # negative log bernoulli
+        y_prob = torch.clamp(y_prob, min=1e-5, max=1. - 1e-5)
+        neg_log_likelihood = -1. * (y * torch.log(y_prob) + (1. - y) *
+                                    torch.log(1. - y_prob))  # negative log bernoulli
 
         return neg_log_likelihood, A
 
@@ -384,7 +329,7 @@ class AttentionBase_Colon(nn.Module):
             nn.Conv2d(36, 48, 3, 1, 0),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
-            nn.Flatten(),
+            nn.Flatten()
         )
 
         self.feature_extractor_part2 = nn.Sequential(
@@ -398,15 +343,20 @@ class AttentionBase_Colon(nn.Module):
         )
 
         self.attention = nn.Sequential(
-            nn.Linear(self.L, self.D), nn.Tanh(), nn.Linear(self.D, self.K)
+            nn.Linear(self.L, self.D),
+            nn.Tanh(),
+            nn.Linear(self.D, self.K)
         )
 
-        self.classifier = nn.Sequential(nn.Linear(self.L * self.K, 1), nn.Sigmoid())
+        self.classifier = nn.Sequential(
+            nn.Linear(self.L * self.K, 1),
+            nn.Sigmoid()
+        )
 
         self.dropout = nn.Dropout(p=0.25)
 
         # Trace
-        print("Constructed the Attention Base model based on the Colon dataset.")
+        print('Constructed the Attention Base model based on the Colon dataset.')
 
     def forward(self, x):
         # [#InstanceInBag, C, W, H] -> [#InstanceInBag, 50, 4, 4]
@@ -447,9 +397,8 @@ class AttentionBase_Colon(nn.Module):
     def calculate_objective(self, x, y):
         y = y.float()
         y_prob, _, A = self.forward(x)
-        y_prob = torch.clamp(y_prob, min=1e-5, max=1.0 - 1e-5)
-        neg_log_likelihood = -1.0 * (
-            y * torch.log(y_prob) + (1.0 - y) * torch.log(1.0 - y_prob)
-        )  # negative log bernoulli
+        y_prob = torch.clamp(y_prob, min=1e-5, max=1. - 1e-5)
+        neg_log_likelihood = -1. * (y * torch.log(y_prob) + (1. - y) *
+                                    torch.log(1. - y_prob))  # negative log bernoulli
 
         return neg_log_likelihood, A
