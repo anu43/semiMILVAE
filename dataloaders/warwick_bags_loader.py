@@ -3,28 +3,29 @@
 import os
 import random
 
-import scipy.io
 import numpy as np
-
-from PIL import Image
-
+import scipy.io
 import torch
 import torch.utils.data as data_utils
 import torchvision.transforms as transforms
+from PIL import Image
 from torch.nn.functional import pad
 
 import dataloaders.additional_transforms as AT
 
 
 class ColonCancerBagsCross(data_utils.Dataset):
-    def __init__(self, path,
-                 train_val_idxs=None,
-                 test_idxs=None,
-                 train=True,
-                 shuffle_bag=False,
-                 data_augmentation=False,
-                 padding=True,
-                 base_att=False):
+    def __init__(
+        self,
+        path,
+        train_val_idxs=None,
+        test_idxs=None,
+        train=True,
+        shuffle_bag=False,
+        data_augmentation=False,
+        padding=True,
+        base_att=False,
+    ):
         self.path = path
         self.train_val_idxs = train_val_idxs
         self.test_idxs = test_idxs
@@ -45,16 +46,16 @@ class ColonCancerBagsCross(data_utils.Dataset):
                     AT.RandomVerticalFlip(),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
-                    transforms.Normalize((0.5, 0.5, 0.5),
-                                         (0.5, 0.5, 0.5))
-                ])
+                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                ]
+            )
             self.normalize_to_tensor_transform = transforms.Compose(
                 [
                     AT.HistoNormalize(),
                     transforms.ToTensor(),
-                    transforms.Normalize((0.5, 0.5, 0.5),
-                                         (0.5, 0.5, 0.5))
-                ])
+                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                ]
+            )
         else:
             # Trace
             # print('Normalization disabled on the Colon Cancer dataset.')
@@ -66,19 +67,26 @@ class ColonCancerBagsCross(data_utils.Dataset):
                     AT.RandomVerticalFlip(),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
-                ])
+                ]
+            )
             self.normalize_to_tensor_transform = transforms.Compose(
                 [
                     AT.HistoNormalize(),
                     transforms.ToTensor(),
-                ])
+                ]
+            )
 
         self.dir_list_train, self.dir_list_test = self.split_dir_list(
-            self.path, self.train_val_idxs, self.test_idxs)
+            self.path, self.train_val_idxs, self.test_idxs
+        )
         if self.train:
-            self.bag_list_train, self.labels_list_train = self.create_bags(self.dir_list_train)
+            self.bag_list_train, self.labels_list_train = self.create_bags(
+                self.dir_list_train
+            )
         else:
-            self.bag_list_test, self.labels_list_test = self.create_bags(self.dir_list_test)
+            self.bag_list_test, self.labels_list_test = self.create_bags(
+                self.dir_list_test
+            )
 
     @staticmethod
     def split_dir_list(path, train_val_idxs, test_idxs):
@@ -96,21 +104,21 @@ class ColonCancerBagsCross(data_utils.Dataset):
         labels_list = []
         for dir in dir_list:
             # Get image name
-            img_name = dir.split('/')[-1]
+            img_name = dir.split("/")[-1]
 
             # bmp to pillow
-            img_dir = dir + '/' + img_name + '.bmp'
-            with open(img_dir, 'rb') as f:
+            img_dir = dir + "/" + img_name + ".bmp"
+            with open(img_dir, "rb") as f:
                 with Image.open(f) as img:
-                    img = img.convert('RGB')
+                    img = img.convert("RGB")
 
             # crop malignant cells
-            dir_epithelial = dir + '/' + img_name + '_epithelial.mat'
-            with open(dir_epithelial, 'rb') as f:
+            dir_epithelial = dir + "/" + img_name + "_epithelial.mat"
+            with open(dir_epithelial, "rb") as f:
                 mat_epithelial = scipy.io.loadmat(f)
 
             cropped_cells_epithelial = []
-            for (x, y) in mat_epithelial['detection']:
+            for (x, y) in mat_epithelial["detection"]:
                 x = np.round(x)
                 y = np.round(y)
 
@@ -144,22 +152,30 @@ class ColonCancerBagsCross(data_utils.Dataset):
                     y_start = y - 13
                     y_end = y + 14
 
-                cropped_cells_epithelial.append(img.crop((x_start, y_start, x_end, y_end)))
+                cropped_cells_epithelial.append(
+                    img.crop((x_start, y_start, x_end, y_end))
+                )
 
             # crop all other cells
-            dir_inflammatory = dir + '/' + img_name + '_inflammatory.mat'
-            dir_fibroblast = dir + '/' + img_name + '_fibroblast.mat'
-            dir_others = dir + '/' + img_name + '_others.mat'
+            dir_inflammatory = dir + "/" + img_name + "_inflammatory.mat"
+            dir_fibroblast = dir + "/" + img_name + "_fibroblast.mat"
+            dir_others = dir + "/" + img_name + "_others.mat"
 
-            with open(dir_inflammatory, 'rb') as f:
+            with open(dir_inflammatory, "rb") as f:
                 mat_inflammatory = scipy.io.loadmat(f)
-            with open(dir_fibroblast, 'rb') as f:
+            with open(dir_fibroblast, "rb") as f:
                 mat_fibroblast = scipy.io.loadmat(f)
-            with open(dir_others, 'rb') as f:
+            with open(dir_others, "rb") as f:
                 mat_others = scipy.io.loadmat(f)
 
             all_coordinates = np.concatenate(
-                (mat_inflammatory['detection'], mat_fibroblast['detection'], mat_others['detection']), axis=0)
+                (
+                    mat_inflammatory["detection"],
+                    mat_fibroblast["detection"],
+                    mat_others["detection"],
+                ),
+                axis=0,
+            )
 
             cropped_cells_others = []
             for (x, y) in all_coordinates:
@@ -202,8 +218,13 @@ class ColonCancerBagsCross(data_utils.Dataset):
             bag = cropped_cells_epithelial + cropped_cells_others
 
             # store single cell labels
-            labels = np.concatenate((np.ones(len(cropped_cells_epithelial)),
-                                     np.zeros(len(cropped_cells_others))), axis=0)
+            labels = np.concatenate(
+                (
+                    np.ones(len(cropped_cells_epithelial)),
+                    np.zeros(len(cropped_cells_others)),
+                ),
+                axis=0,
+            )
 
             # shuffle
             if self.shuffle_bag:
@@ -235,7 +256,9 @@ class ColonCancerBagsCross(data_utils.Dataset):
         for img in bag:
             # If padding is True
             if self.padding:
-                bag_tensors.append(pad(img_transform(img), (0, 1, 0, 1), mode='constant'))
+                bag_tensors.append(
+                    pad(img_transform(img), (0, 1, 0, 1), mode="constant")
+                )
             # Otherwise
             else:
                 bag_tensors.append(img_transform(img))
