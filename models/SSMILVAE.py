@@ -268,7 +268,7 @@ class ConvEncoder_Colon(nn.Module):
     def _encode(self, x):
         # Encode, then chunk into two [z_mean, z_logvar]
         x = self.encoder(x)
-        # x = x.reshape(*x.shape, 1, 1)
+        x = x.reshape(*x.shape, 1, 1)
         return torch.chunk(x, 2, 1)
 
     @staticmethod

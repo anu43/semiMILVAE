@@ -205,17 +205,19 @@ class Attention_Colon(nn.Module):
 
 
 class AttentionRes_Colon(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(AttentionRes_Colon, self).__init__()
         self.L = 512
         self.D = 128
         self.K = 1
 
+        self.inp_channels = args.dec_inp
+
         self.feature_extractor_part1 = nn.Sequential(
-            nn.ConvTranspose2d(2, 16, kernel_size=3),
+            nn.ConvTranspose2d(int(self.inp_channels / 16), 16, kernel_size=3),
             nn.ReLU(),
             nn.Upsample(scale_factor=2),
-            nn.ConvTranspose2d(16, 3, kernel_size=3),
+            nn.ConvTranspose2d(16, 1, kernel_size=3),
             nn.ReLU(),
             nn.Upsample(scale_factor=2),
         )
