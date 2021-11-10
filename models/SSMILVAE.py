@@ -495,9 +495,7 @@ class SSMILVAE(nn.Module):
         if args.model != "base":
             # Declare Attention MIL Classifier
             self.att = (
-                Attention_MNIST(args)
-                if args.data == "MNIST"
-                else AttentionRes_Colon(self.args)
+                Attention_MNIST(args) if args.data == "MNIST" else AttentionRes_Colon()
             )
         # If the model type is equal to auxil
         if self.args.model == "auxil":
